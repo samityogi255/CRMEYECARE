@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
+    id: '',
     groupName: '',
     contactName: '',
     contactEmail: '',
@@ -11,23 +13,42 @@ const Profile = () => {
     groupSize: '',
     specificRequirements: ''
   });
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Function to fetch profile data from API
   const fetchProfileData = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/profile/', {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get('http://localhost:3002/profile', {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}` // Assuming you store token in localStorage
+          Authorization: `Bearer ${token}`
         }
       });
+  
       const profileFromApi = response.data;
-      console.log(profileFromApi.id)
-      setProfileData(profileFromApi); // Update state with data fetched from API
+  
+      // Set default values to empty strings if any field is null or undefined
+      const defaultProfile = {
+        id: profileFromApi.id || '',
+        groupName: profileFromApi.groupName || '',
+        contactName: profileFromApi.contactName || '',
+        contactEmail: profileFromApi.contactEmail || '',
+        contactPhone: profileFromApi.contactPhone || '',
+        demographics: profileFromApi.demographics || '',
+        groupSize: profileFromApi.groupSize || '',
+        specificRequirements: profileFromApi.specificRequirements || ''
+      };
+  
+      console.log('Fetched Profile Data:', defaultProfile); // Debug: Log fetched data
+      setProfileData(defaultProfile);
+      setLoading(false);
     } catch (error) {
       console.error('Failed to fetch profile data:', error);
       // Handle error gracefully, e.g., show error message to user
     }
   };
+  
 
   // Fetch profile data when component mounts
   useEffect(() => {
@@ -36,6 +57,7 @@ const Profile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Updating ${name} to ${value}`); // Debug: Log changes
     setProfileData(prevState => ({
       ...prevState,
       [name]: value
@@ -44,24 +66,74 @@ const Profile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
-      const response = await axios.post('http://localhost:3002/profile/', profileData, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}` // Assuming you store token in localStorage
-        }
-      });
-      console.log('Profile updated successfully:', response.data);
-      alert('Profile updated successfully!');
+      const token = localStorage.getItem('accessToken');
+      let response;
+  
+      if (profileData.id) {
+        // Update existing profile
+        response = await axios.put(`http://localhost:3002/profile/${profileData.id}`, profileData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        console.log('Profile updated successfully:', response.data);
+        alert('Profile updated successfully!');
+      } else {
+        // Create new profile
+        response = await axios.post('http://localhost:3002/profile', profileData, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        console.log('Profile created successfully:', response.data);
+        alert('Profile created successfully!');
+        setProfileData(response.data); // Update local state with new profile data, including ID
+      }
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Failed to save profile:', error);
       // Handle error gracefully, e.g., show error message to user
     }
   };
+  
+
+  function logout() {
+    const token = localStorage.getItem('accessToken');
+    
+    if (!token) {
+      console.error('Access token not found in localStorage');
+      return;
+    }
+
+    axios.post('http://localhost:3002/login/logout', {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => {
+      localStorage.removeItem('accessToken');
+      navigate('/login');
+    })
+    .catch(err => {
+      console.error('Error logging out:', err);
+    });
+  }
+
+  // Render loading indicator or form based on loading state
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-semibold mb-6">Profile</h1>
+      <div className='flex justify-between'>
+        <h1 className="text-3xl font-semibold mb-6">Profile</h1>
+        <button
+          onClick={logout}
+          className="bg-red-500 text-white px-4 py-2 ml-200 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Logout
+        </button>
+      </div> 
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -178,12 +250,14 @@ const Profile = () => {
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Save Profile
-          </button>
+          <div className='flex justify-between'>
+            <button
+              type="submit"
+              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Update Profile
+            </button>
+          </div>
         </form>
       </div>
     </div>

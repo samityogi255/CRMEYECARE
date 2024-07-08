@@ -3,6 +3,7 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const dotenv = require("dotenv");
+const {blacklist,  authenticateToken} = require('../Middleware/authMiddleware')
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -36,5 +37,12 @@ LoginRouter.post('/', async (req, res) => {
         console.log("Error:", err);
     }
 });
+
+LoginRouter.post('/logout' , authenticateToken, async(req,res)=>{
+    const token = req.headers['authorization'].split(' ')[1];
+    blacklist.add(token);
+    res.json({ message: 'Logout successful' });
+
+})
 
 module.exports = { LoginRouter };

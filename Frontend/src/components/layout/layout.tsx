@@ -20,7 +20,9 @@ const Layout = ({ children }: LayoutProps) => {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) {
+          navigate('/login');
           throw new Error('No access token found');
+          
         }
         const response = await axios.get<{ username: string }>('http://localhost:3002/user/userInfo', {
           headers: {

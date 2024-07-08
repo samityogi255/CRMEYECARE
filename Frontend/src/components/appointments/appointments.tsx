@@ -32,17 +32,15 @@ const Appointments = () => {
 
   const fetchPatientsAndDoctors = async () => {
     try {
-      const token  = localStorage.getItem('accessToken');
-      const patientsResponse = await axios.get('http://localhost:3002/patients', {
-        headers:{
-          Authorization : `Bearer ${token}`,
-        }
-      });
-      const doctorsResponse = await axios.get('http://localhost:3002/doctors', {
-        headers:{
-          Authorization : `Bearer ${token}`,
-        }
-      });
+      const token = localStorage.getItem('accessToken');
+      const [patientsResponse, doctorsResponse] = await Promise.all([
+        axios.get('http://localhost:3002/patients', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:3002/doctors', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
       setPatients(patientsResponse.data);
       setDoctors(doctorsResponse.data);
     } catch (error) {
@@ -53,18 +51,14 @@ const Appointments = () => {
   const fetchAppointmentData = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const appointmentResponse  = await axios.get('http://localhost:3002/appointments', {
-        headers: {
-          Authorization :`Bearer ${token}`
-        }
+      const appointmentResponse = await axios.get('http://localhost:3002/appointments', {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Map appointments to include patient and doctor names and format date
       const appointmentsWithNames = appointmentResponse.data.map((appointment: Appointment) => ({
         ...appointment,
         patientName: patients.find(patient => patient.id === appointment.patientId)?.name || 'Unknown',
         doctorName: doctors.find(doctor => doctor.id === appointment.doctorId)?.name || 'Unknown',
-        // Format date string to user-friendly format
         date: new Date(appointment.date).toLocaleDateString('en-US', {
           hour: 'numeric',
           minute: 'numeric',
@@ -82,9 +76,13 @@ const Appointments = () => {
   };
 
   useEffect(() => {
-    fetchPatientsAndDoctors();
-    fetchAppointmentData();
-  }, []);
+    const fetchData = async () => {
+      await fetchPatientsAndDoctors();
+      fetchAppointmentData();
+    };
+
+    fetchData();
+  }, [patients, doctors]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -103,12 +101,9 @@ const Appointments = () => {
       };
       const token = localStorage.getItem('accessToken');
       const response = await axios.post<Appointment>('http://localhost:3002/appointments', formattedData, {
-        headers:{
-          Authorization : `Bearer ${token}`,
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Update state with new appointment including patient and doctor names and formatted date
       const newAppointment: Appointment = {
         ...response.data,
         patientName: patients.find(patient => patient.id === response.data.patientId)?.name || 'Unknown',
@@ -121,11 +116,7 @@ const Appointments = () => {
       };
 
       setAppointments([...appointments, newAppointment]);
-      setFormData({
-        patientId: '',
-        doctorId: '',
-        date: ''
-      });
+      setFormData({ patientId: '', doctorId: '', date: '' });
     } catch (error) {
       console.error('Error adding appointment:', error);
     }

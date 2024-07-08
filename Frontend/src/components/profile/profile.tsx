@@ -1,17 +1,40 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Profile = () => {
   const [profileData, setProfileData] = useState({
-    groupName: 'Corporate Clients Group',
-    contactName: 'Jane Smith',
-    contactEmail: 'jane.smith@example.com',
-    contactPhone: '123-456-7890',
-    demographics: 'Corporate employees, ages 25-50',
-    groupSize: '50-100 members',
-    specificRequirements: 'On-site eye exams, prescription glasses delivery'
+    groupName: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    demographics: '',
+    groupSize: '',
+    specificRequirements: ''
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Function to fetch profile data from API
+  const fetchProfileData = async () => {
+    try {
+      const response = await axios.get('http://localhost:3002/profile/', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}` // Assuming you store token in localStorage
+        }
+      });
+      const profileFromApi = response.data;
+      console.log(profileFromApi.id)
+      setProfileData(profileFromApi); // Update state with data fetched from API
+    } catch (error) {
+      console.error('Failed to fetch profile data:', error);
+      // Handle error gracefully, e.g., show error message to user
+    }
+  };
+
+  // Fetch profile data when component mounts
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setProfileData(prevState => ({
       ...prevState,
@@ -19,23 +42,33 @@ const Profile = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate API call to update profile data
-    console.log('Updating profile:', profileData);
-    alert('Profile updated successfully!');
+
+    try {
+      const response = await axios.post('http://localhost:3002/profile/', profileData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}` // Assuming you store token in localStorage
+        }
+      });
+      console.log('Profile updated successfully:', response.data);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      // Handle error gracefully, e.g., show error message to user
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-semibold mb-6">Group Profile</h1>
+      <h1 className="text-3xl font-semibold mb-6">Profile</h1>
 
       <div className="bg-white shadow-md rounded-lg p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Group Name */}
           <div>
             <label htmlFor="groupName" className="block text-sm font-medium text-gray-700 mb-1">
-              Group Name
+              Company Name
             </label>
             <input
               id="groupName"

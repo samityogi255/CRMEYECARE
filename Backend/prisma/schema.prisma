@@ -14,8 +14,63 @@ datasource db {
 }
 
 model User {
-  id      Int      @id @default(autoincrement())
-  email   String   @unique
-  username String  @unique
+  id       Int       @id @default(autoincrement())
+  email    String    @unique
+  username String    @unique
   password String
+  profiles Profile[]
+}
+
+model Profile {
+  id                   Int      @id @default(autoincrement())
+  groupName            String
+  contactName          String
+  contactEmail         String   @unique
+  contactPhone         String
+  demographics         String
+  groupSize            String
+  specificRequirements String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  userId               Int
+  user                 User     @relation(fields: [userId], references: [id])
+}
+
+model Patient {
+  id     Int    @id @default(autoincrement())
+  name   String
+  age    Int
+  gender String
+
+  Appointment Appointment[]
+}
+
+model Doctor {
+  id           Int           @id @default(autoincrement())
+  name         String
+  speciality   String
+  appointments Appointment[]
+}
+
+model Appointment {
+  id        Int       @id @default(autoincrement())
+  date      DateTime?
+  doctor    Doctor    @relation(fields: [doctorId], references: [id])
+  doctorId  Int
+  patient   Patient?  @relation(fields: [patientId], references: [id])
+  patientId Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime ?  @updatedAt
+  Payment   Payment[]
+}
+
+model Payment {
+  id            Int         @id @default(autoincrement())
+  amount        Float
+  currency      String
+  status        String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointmentId Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }

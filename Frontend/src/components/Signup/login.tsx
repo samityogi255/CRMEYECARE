@@ -26,6 +26,7 @@ export default function Login() {
             .then(result => {
                 const { accessToken } = result.data;
                 console.log(accessToken);
+               
                 localStorage.setItem('accessToken', accessToken);
                 navigate('/');
             })

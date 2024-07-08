@@ -23,7 +23,7 @@ export default function Signup() {
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        axios.post('http://localhost:3002/createUser', userInfo)
+        axios.post('http://localhost:3002/user/createUser', userInfo)
             .then(result => {
                 console.log(result);
                 navigate("/login");

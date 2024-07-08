@@ -1,22 +1,55 @@
 // Layout.tsx
-import { ReactNode } from 'react';
-import { Outlet } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from '../Nav/nav';
 import Sidebar from '../sidebar/sidebar';
+import axios from 'axios';
 
 interface LayoutProps {
-  children: ReactNode; // ReactNode can represent any valid JSX children
+  children: ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<string>(''); // Initialize user state with an empty string
+
+  useEffect(() => {
+    console.log('Fetching user data...');
+
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          throw new Error('No access token found');
+        }
+        const response = await axios.get<{ username: string }>('http://localhost:3002/user/userInfo', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setUser(response.data.username); // Update user state with the username string
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          console.log('Unauthorized');
+          navigate('/login');
+        } else {
+          console.log('Cannot fetch data');
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [navigate]); // Include navigate in the dependency array
+
   return (
     <>
-      <Navbar />
+      <Navbar name={user} />
       <div className="flex">
         <Sidebar />
-        <main className="w-[100%]">
+        <main className="w-full">
           <Outlet />
-          {children} {/* Render the child routes */}
+          {children}
         </main>
       </div>
     </>

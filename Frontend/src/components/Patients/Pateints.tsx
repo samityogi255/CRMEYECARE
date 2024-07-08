@@ -1,54 +1,81 @@
-import { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import axios from 'axios';
+
+interface Patient {
+  id: number;
+  name: string;
+  age: number;
+  gender: string;
+}
 
 const Patients = () => {
-  // Mock patient data
-  const [patients, setPatients] = useState([
-    { id: 1, name: 'John Doe', age: 35, gender: 'Male' },
-    { id: 2, name: 'Jane Smith', age: 28, gender: 'Female' },
-    { id: 3, name: 'Michael Johnson', age: 42, gender: 'Male' },
-    { id: 4, name: 'Emily Brown', age: 30, gender: 'Female' },
-  ]);
-
-  // State for form inputs
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [formData, setFormData] = useState({
-    id: '',
     name: '',
-    age: '',
+    age: 0,
     gender: '',
   });
 
+  // Function to fetch patients data
+  const fetchPatients = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get<Patient[]>('http://localhost:3002/patients', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setPatients(response.data);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
+
+  // Fetch patients data on component mount
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
   // Function to handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
       ...prevFormData,
-      [name]: value,
+      [name]: name === 'age' ? parseInt(value) : value,
     }));
   };
 
   // Function to handle form submission for adding a new patient
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Create a new patient object
-    const newPatient = {
-      id: patients.length + 1, // Generate a new ID (in a real application, this should be handled by a database or backend)
-      ...formData,
-    };
-    // Update state with the new patient added
-    setPatients([...patients, newPatient]);
-    // Reset form data
-    setFormData({
-      id: '',
-      name: '',
-      age: '',
-      gender: '',
-    });
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post<Patient>('http://localhost:3002/patients', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setPatients([...patients, response.data]);
+      setFormData({ name: '', age: '0', gender: '' });
+    } catch (error) {
+      console.error('Error adding patient:', error);
+    }
   };
 
   // Function to handle patient deletion
-  const handleDelete = (id: number) => {
-    const updatedPatients = patients.filter((patient) => patient.id !== id);
-    setPatients(updatedPatients);
+  const handleDelete = async (id: number) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      await axios.delete(`http://localhost:3002/patients/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const updatedPatients = patients.filter((patient) => patient.id !== id);
+      setPatients(updatedPatients);
+    } catch (error) {
+      console.error('Error deleting patient:', error);
+    }
   };
 
   return (

@@ -2,7 +2,10 @@ import { Link } from "react-router-dom";
 import { AiOutlineSearch } from 'react-icons/ai';
 import { FaUserCircle } from 'react-icons/fa';
 
-const Navbar = () => {
+
+const Navbar = (props) => {
+
+
   return (
     <nav className="bg-gray-900 text-white h-16 px-6 flex items-center justify-between">
       {/* Logo or brand */}
@@ -28,11 +31,11 @@ const Navbar = () => {
       <div className="flex items-center space-x-2">
         <FaUserCircle className="text-2xl" />
         <Link to="/profile" className="hover:underline">
-          Profile
+          {props.name} 
         </Link>
-        <Link to="/signup" className="hover:underline">
+        {/* <Link to="/signup" className="hover:underline">
           MyAccount
-        </Link>
+        </Link> */}
       </div>
     </nav>
   );

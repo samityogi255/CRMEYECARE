@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { AiFillHome, AiOutlineUser, AiOutlineCalendar, AiOutlineBarChart, AiOutlineSetting } from 'react-icons/ai';
+import { FaUserDoctor } from "react-icons/fa6";
 import { MdOutlinePayment } from "react-icons/md";
 
 const Sidebar = () => {
@@ -26,6 +27,9 @@ const Sidebar = () => {
             </NavLink>
             <NavLink to="/payment" icon={<MdOutlinePayment />}>
               Payment
+            </NavLink>
+            <NavLink to="/doctor" icon={<FaUserDoctor/>}>
+              Doctor
             </NavLink>
           </nav>
         </div>

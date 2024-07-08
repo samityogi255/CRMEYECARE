@@ -1,99 +1,179 @@
-import { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import axios from 'axios';
+
+interface Appointment {
+  id: number;
+  patientId: number;
+  doctorId: number;
+  date: string;  // Assuming 'date' field in the schema is a string with datetime
+  patientName: string;  // Added to store patient's name
+  doctorName: string;   // Added to store doctor's name
+}
+
+interface Doctor {
+  id: number;
+  name: string;
+}
+
+interface Patient {
+  id: number;
+  name: string;
+}
 
 const Appointments = () => {
-  // Mock appointment data
-  const [appointments, setAppointments] = useState([
-    { id: 1, patientName: 'John Doe', doctor: 'Dr. Smith', date: '2024-07-01', time: '10:00 AM' },
-    { id: 2, patientName: 'Jane Smith', doctor: 'Dr. Brown', date: '2024-07-02', time: '11:00 AM' },
-    { id: 3, patientName: 'Michael Johnson', doctor: 'Dr. White', date: '2024-07-03', time: '09:30 AM' },
-  ]);
-
-  // State for form inputs
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [formData, setFormData] = useState({
-    id: '',
-    patientName: '',
-    doctor: '',
-    date: '',
-    time: '',
+    patientId: '',
+    doctorId: '',
+    date: ''
   });
 
-  // Function to handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fetchPatientsAndDoctors = async () => {
+    try {
+      const token  = localStorage.getItem('accessToken');
+      const patientsResponse = await axios.get('http://localhost:3002/patients', {
+        headers:{
+          Authorization : `Bearer ${token}`,
+        }
+      });
+      const doctorsResponse = await axios.get('http://localhost:3002/doctors', {
+        headers:{
+          Authorization : `Bearer ${token}`,
+        }
+      });
+      setPatients(patientsResponse.data);
+      setDoctors(doctorsResponse.data);
+    } catch (error) {
+      console.error('Error fetching patients and doctors:', error);
+    }
+  };
+
+  const fetchAppointmentData = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const appointmentResponse  = await axios.get('http://localhost:3002/appointments', {
+        headers: {
+          Authorization :`Bearer ${token}`
+        }
+      });
+
+      // Map appointments to include patient and doctor names and format date
+      const appointmentsWithNames = appointmentResponse.data.map((appointment: Appointment) => ({
+        ...appointment,
+        patientName: patients.find(patient => patient.id === appointment.patientId)?.name || 'Unknown',
+        doctorName: doctors.find(doctor => doctor.id === appointment.doctorId)?.name || 'Unknown',
+        // Format date string to user-friendly format
+        date: new Date(appointment.date).toLocaleDateString('en-US', {
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true,
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      }));
+
+      setAppointments(appointmentsWithNames);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPatientsAndDoctors();
+    fetchAppointmentData();
+  }, []);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData((prevFormData) => ({
+    setFormData(prevFormData => ({
       ...prevFormData,
       [name]: value,
     }));
   };
 
-  // Function to handle form submission for adding a new appointment
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Create a new appointment object
-    const newAppointment = {
-      id: appointments.length + 1, // Generate a new ID (in a real application, this should be handled by a database or backend)
-      ...formData,
-    };
-    // Update state with the new appointment added
-    setAppointments([...appointments, newAppointment]);
-    // Reset form data
-    setFormData({
-      id: '',
-      patientName: '',
-      doctor: '',
-      date: '',
-      time: '',
-    });
-  };
+    try {
+      const formattedData = {
+        ...formData,
+        date: new Date(formData.date).toISOString(),
+      };
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.post<Appointment>('http://localhost:3002/appointments', formattedData, {
+        headers:{
+          Authorization : `Bearer ${token}`,
+        }
+      });
 
-  // Function to handle appointment deletion
-  const handleDelete = (id: number) => {
-    const updatedAppointments = appointments.filter((appointment) => appointment.id !== id);
-    setAppointments(updatedAppointments);
+      // Update state with new appointment including patient and doctor names and formatted date
+      const newAppointment: Appointment = {
+        ...response.data,
+        patientName: patients.find(patient => patient.id === response.data.patientId)?.name || 'Unknown',
+        doctorName: doctors.find(doctor => doctor.id === response.data.doctorId)?.name || 'Unknown',
+        date: new Date(response.data.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      };
+
+      setAppointments([...appointments, newAppointment]);
+      setFormData({
+        patientId: '',
+        doctorId: '',
+        date: ''
+      });
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+    }
   };
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-semibold mb-6">Appointments</h1>
 
-      {/* Add Appointment Form */}
       <form className="mb-6" onSubmit={handleSubmit}>
-        <label className="block mb-2 font-semibold">Patient Name:</label>
-        <input
-          type="text"
-          name="patientName"
+        <label className="block mb-2 font-semibold">Patient:</label>
+        <select
+          name="patientId"
           className="p-2 mb-2 rounded-lg w-full"
-          value={formData.patientName}
+          value={formData.patientId}
           onChange={handleChange}
           required
-        />
+        >
+          <option value="">Select Patient</option>
+          {patients.map(patient => (
+            <option key={patient.id} value={patient.id}>
+              {patient.name}
+            </option>
+          ))}
+        </select>
 
         <label className="block mb-2 font-semibold">Doctor:</label>
-        <input
-          type="text"
-          name="doctor"
+        <select
+          name="doctorId"
           className="p-2 mb-2 rounded-lg w-full"
-          value={formData.doctor}
+          value={formData.doctorId}
           onChange={handleChange}
           required
-        />
+        >
+          <option value="">Select Doctor</option>
+          {doctors.map(doctor => (
+            <option key={doctor.id} value={doctor.id}>
+              {doctor.name}
+            </option>
+          ))}
+        </select>
 
-        <label className="block mb-2 font-semibold">Date:</label>
+        <label className="block mb-2 font-semibold">Date and Time:</label>
         <input
-          type="date"
+          type="datetime-local"
           name="date"
           className="p-2 mb-2 rounded-lg w-full"
           value={formData.date}
-          onChange={handleChange}
-          required
-        />
-
-        <label className="block mb-2 font-semibold">Time:</label>
-        <input
-          type="time"
-          name="time"
-          className="p-2 mb-2 rounded-lg w-full"
-          value={formData.time}
           onChange={handleChange}
           required
         />
@@ -103,35 +183,23 @@ const Appointments = () => {
         </button>
       </form>
 
-      {/* Display Appointments Table */}
       <div>
         <table className="w-full border-collapse border border-gray-200">
           <thead className="bg-gray-100">
             <tr>
               <th className="border border-gray-200 px-4 py-2 text-left">ID</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Patient Name</th>
-              <th className="border border-gray-200 px-4 py-2 text-left">Doctor</th>
-              <th className="border border-gray-200 px-4 py-2 text-left">Date</th>
-              <th className="border border-gray-200 px-4 py-2 text-left">Time</th>
-              <th className="border border-gray-200 px-4 py-2"></th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Doctor Name</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Date and Time</th>
             </tr>
           </thead>
           <tbody>
-            {appointments.map((appointment) => (
+            {appointments.map(appointment => (
               <tr key={appointment.id}>
                 <td className="border border-gray-200 px-4 py-2">{appointment.id}</td>
                 <td className="border border-gray-200 px-4 py-2">{appointment.patientName}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.doctor}</td>
+                <td className="border border-gray-200 px-4 py-2">{appointment.doctorName}</td>
                 <td className="border border-gray-200 px-4 py-2">{appointment.date}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.time}</td>
-                <td className="border border-gray-200 px-4 py-2 text-center">
-                  <button
-                    onClick={() => handleDelete(appointment.id)}
-                    className="bg-red-500 text-white p-2 rounded-lg"
-                  >
-                    Delete
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>

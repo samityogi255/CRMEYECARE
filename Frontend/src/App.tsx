@@ -8,6 +8,7 @@ import Appointments from "./components/appointments/appointments";
 import Reports from "./components/Reports/reports";
 import Payments from "./components/Payment/payment";
 import Profile from "./components/profile/profile";
+import Doctors from "./components/doctor/doctor";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/reports" element={<Reports />} />
           <Route path="/payment" element={<Payments />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/doctor" element={<Doctors />} />
         </Route>
       </Routes>
     </BrowserRouter>

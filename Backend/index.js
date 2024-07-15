@@ -10,6 +10,7 @@ const profileRouter = require('./Routes/profile');
 const patientRouter  = require('./Routes/patient');
 const doctorRouter = require('./Routes/doctor')
 const appointmentRouter = require('./Routes/appointment')
+const paymentRouter = require('./Routes/payment')
 // Initialize app and Prisma client
 dotenv.config();
 const app = express();
@@ -26,6 +27,7 @@ app.use('/profile', profileRouter);
 app.use('/patients' , patientRouter);
 app.use('/doctors' , doctorRouter)
 app.use('/appointments' , appointmentRouter)
+app.use('/payment', paymentRouter);
 
 
 

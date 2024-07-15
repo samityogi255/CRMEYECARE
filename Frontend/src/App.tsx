@@ -6,9 +6,10 @@ import Dashboard from "./components/Dashboard/dashboard";
 import Patients from "./components/Patients/Pateints";
 import Appointments from "./components/appointments/appointments";
 import Reports from "./components/Reports/reports";
-import Payments from "./components/Payment/payment";
+import Payment from "./components/Payment/payment";
 import Profile from "./components/profile/profile";
 import Doctors from "./components/doctor/doctor";
+import PaymentForms from "./components/Payment/paymentForm";
 
 function App() {
   return (
@@ -22,9 +23,10 @@ function App() {
           <Route path="/patients" element={<Patients />} />
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/payment" element={<Payments />} />
+          <Route path="/payment" element={<Payment />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/doctor" element={<Doctors />} />
+          <Route path="/add-payment" element={<PaymentForms/>} />
         </Route>
       </Routes>
     </BrowserRouter>

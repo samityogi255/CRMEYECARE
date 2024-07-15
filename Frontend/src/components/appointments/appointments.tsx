@@ -3,11 +3,9 @@ import axios from 'axios';
 
 interface Appointment {
   id: number;
-  patientId: number;
-  doctorId: number;
-  date: string;  // Assuming 'date' field in the schema is a string with datetime
-  patientName: string;  // Added to store patient's name
-  doctorName: string;   // Added to store doctor's name
+  date: string;       // Assuming 'date' field in the schema is a string with datetime
+  patient: Patient;   // Updated to include patient details
+  doctor: Doctor;     // Updated to include doctor details
 }
 
 interface Doctor {
@@ -30,60 +28,54 @@ const Appointments = () => {
     date: ''
   });
 
-  const fetchPatientsAndDoctors = async () => {
-    try {
-      const token  = localStorage.getItem('accessToken');
-      const patientsResponse = await axios.get('http://localhost:3002/patients', {
-        headers:{
-          Authorization : `Bearer ${token}`,
-        }
-      });
-      const doctorsResponse = await axios.get('http://localhost:3002/doctors', {
-        headers:{
-          Authorization : `Bearer ${token}`,
-        }
-      });
-      setPatients(patientsResponse.data);
-      setDoctors(doctorsResponse.data);
-    } catch (error) {
-      console.error('Error fetching patients and doctors:', error);
-    }
-  };
-
-  const fetchAppointmentData = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      const appointmentResponse  = await axios.get('http://localhost:3002/appointments', {
-        headers: {
-          Authorization :`Bearer ${token}`
-        }
-      });
-
-      // Map appointments to include patient and doctor names and format date
-      const appointmentsWithNames = appointmentResponse.data.map((appointment: Appointment) => ({
-        ...appointment,
-        patientName: patients.find(patient => patient.id === appointment.patientId)?.name || 'Unknown',
-        doctorName: doctors.find(doctor => doctor.id === appointment.doctorId)?.name || 'Unknown',
-        // Format date string to user-friendly format
-        date: new Date(appointment.date).toLocaleDateString('en-US', {
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: true,
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      }));
-
-      setAppointments(appointmentsWithNames);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
-    fetchPatientsAndDoctors();
-    fetchAppointmentData();
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+
+        // Fetch patients and doctors data
+        const patientsResponse = await axios.get<Patient[]>('http://localhost:3002/patients', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+        const doctorsResponse = await axios.get<Doctor[]>('http://localhost:3002/doctors', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+
+        // Update patients and doctors state
+        setPatients(patientsResponse.data);
+        setDoctors(doctorsResponse.data);
+
+        // Fetch appointments data
+        const appointmentResponse = await axios.get<Appointment[]>('http://localhost:3002/appointments', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        // Set appointments state with doctor and patient details included
+        setAppointments(appointmentResponse.data.map(appointment => ({
+          ...appointment,
+          // Format date string to user-friendly format
+          date: new Date(appointment.date).toLocaleDateString('en-US', {
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true,
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        })));
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -97,35 +89,26 @@ const Appointments = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
+      const token = localStorage.getItem('accessToken');
       const formattedData = {
         ...formData,
+        // Ensure proper date format for backend (considering time zone)
         date: new Date(formData.date).toISOString(),
       };
-      const token = localStorage.getItem('accessToken');
       const response = await axios.post<Appointment>('http://localhost:3002/appointments', formattedData, {
-        headers:{
-          Authorization : `Bearer ${token}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
         }
       });
 
-      // Update state with new appointment including patient and doctor names and formatted date
-      const newAppointment: Appointment = {
-        ...response.data,
-        patientName: patients.find(patient => patient.id === response.data.patientId)?.name || 'Unknown',
-        doctorName: doctors.find(doctor => doctor.id === response.data.doctorId)?.name || 'Unknown',
-        date: new Date(response.data.date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      };
-
-      setAppointments([...appointments, newAppointment]);
+      // Update appointments state with the new appointment
+      setAppointments([...appointments, response.data]);
       setFormData({
         patientId: '',
         doctorId: '',
         date: ''
       });
+
     } catch (error) {
       console.error('Error adding appointment:', error);
     }
@@ -197,8 +180,8 @@ const Appointments = () => {
             {appointments.map(appointment => (
               <tr key={appointment.id}>
                 <td className="border border-gray-200 px-4 py-2">{appointment.id}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.patientName}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.doctorName}</td>
+                <td className="border border-gray-200 px-4 py-2">{appointment.patient ? appointment.patient.name : 'Unknown'}</td>
+                <td className="border border-gray-200 px-4 py-2">{appointment.doctor ? appointment.doctor.name : 'Unknown'}</td>
                 <td className="border border-gray-200 px-4 py-2">{appointment.date}</td>
               </tr>
             ))}

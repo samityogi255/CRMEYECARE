@@ -7,22 +7,31 @@ const { authenticateToken } = require('../Middleware/authMiddleware');
 // Middleware to parse JSON request bodies
 router.use(express.json());
 
-// GET all appointments
+// GET all appointments with patient and doctor information
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const appointments = await prisma.appointment.findMany();
+    const appointments = await prisma.appointment.findMany({
+      include: {
+        patient: true, // Include patient information
+        doctor: true   // Include doctor information
+      },
+    });
     res.json(appointments);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching appointments' });
   }
 });
 
-// GET appointment by ID
+// GET appointment by ID with patient and doctor information
 router.get('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
     const appointment = await prisma.appointment.findUnique({
       where: { id: parseInt(id) },
+      include: {
+        patient: true, // Include patient information
+        doctor: true   // Include doctor information
+      },
     });
     if (!appointment) {
       return res.status(404).json({ error: 'Appointment not found' });
@@ -38,7 +47,11 @@ router.post('/', authenticateToken, async (req, res) => {
   const { date, doctorId, patientId } = req.body;
   try {
     const newAppointment = await prisma.appointment.create({
-      data: {  date: new Date(date), doctorId: parseInt(doctorId), patientId: parseInt(patientId) },
+      data: {
+        date: new Date(date),
+        doctorId: parseInt(doctorId),
+        patientId: parseInt(patientId)
+      },
     });
     res.status(201).json(newAppointment);
   } catch (error) {

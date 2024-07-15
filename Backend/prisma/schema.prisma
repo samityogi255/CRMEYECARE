@@ -68,7 +68,7 @@ model Payment {
   id            Int         @id @default(autoincrement())
   amount        Float
   currency      String
-  status        String
+  status        String?
   appointment   Appointment @relation(fields: [appointmentId], references: [id])
   appointmentId Int
   createdAt     DateTime    @default(now())

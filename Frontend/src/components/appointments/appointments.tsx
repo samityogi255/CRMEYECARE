@@ -28,55 +28,58 @@ const Appointments = () => {
     date: ''
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
+  const fetchPatientsAndDoctors = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const [patientsResponse, doctorsResponse] = await Promise.all([
+        axios.get('http://localhost:3002/patients', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get('http://localhost:3002/doctors', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      setPatients(patientsResponse.data);
+      setDoctors(doctorsResponse.data);
+    } catch (error) {
+      console.error('Error fetching patients and doctors:', error);
+    }
+  };
 
-        // Fetch patients and doctors data
-        const patientsResponse = await axios.get<Patient[]>('http://localhost:3002/patients', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        });
-        const doctorsResponse = await axios.get<Doctor[]>('http://localhost:3002/doctors', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          }
-        });
+  const fetchAppointmentData = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const appointmentResponse = await axios.get('http://localhost:3002/appointments', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-        // Update patients and doctors state
-        setPatients(patientsResponse.data);
-        setDoctors(doctorsResponse.data);
-
-        // Fetch appointments data
-        const appointmentResponse = await axios.get<Appointment[]>('http://localhost:3002/appointments', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        // Set appointments state with doctor and patient details included
-        setAppointments(appointmentResponse.data.map(appointment => ({
-          ...appointment,
-          // Format date string to user-friendly format
-          date: new Date(appointment.date).toLocaleDateString('en-US', {
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true,
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          })
-        })));
+      const appointmentsWithNames = appointmentResponse.data.map((appointment: Appointment) => ({
+        ...appointment,
+        patientName: patients.find(patient => patient.id === appointment.patientId)?.name || 'Unknown',
+        doctorName: doctors.find(doctor => doctor.id === appointment.doctorId)?.name || 'Unknown',
+        date: new Date(appointment.date).toLocaleDateString('en-US', {
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true,
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      }));
 
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchPatientsAndDoctors();
+      fetchAppointmentData();
+    };
+
     fetchData();
-  }, []);
+  }, [patients, doctors]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -96,19 +99,22 @@ const Appointments = () => {
         date: new Date(formData.date).toISOString(),
       };
       const response = await axios.post<Appointment>('http://localhost:3002/appointments', formattedData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      // Update appointments state with the new appointment
-      setAppointments([...appointments, response.data]);
-      setFormData({
-        patientId: '',
-        doctorId: '',
-        date: ''
-      });
+      const newAppointment: Appointment = {
+        ...response.data,
+        patientName: patients.find(patient => patient.id === response.data.patientId)?.name || 'Unknown',
+        doctorName: doctors.find(doctor => doctor.id === response.data.doctorId)?.name || 'Unknown',
+        date: new Date(response.data.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      };
 
+      setAppointments([...appointments, newAppointment]);
+      setFormData({ patientId: '', doctorId: '', date: '' });
     } catch (error) {
       console.error('Error adding appointment:', error);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
+import { format, formatDistanceToNow } from 'date-fns';
 
 interface Appointment {
   id: number;
@@ -52,20 +53,9 @@ const Appointments = () => {
       const appointmentResponse = await axios.get('http://localhost:3002/appointments', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setAppointments(appointmentResponse.data)
 
-      const appointmentsWithNames = appointmentResponse.data.map((appointment: Appointment) => ({
-        ...appointment,
-        patientName: patients.find(patient => patient.id === appointment.patientId)?.name || 'Unknown',
-        doctorName: doctors.find(doctor => doctor.id === appointment.doctorId)?.name || 'Unknown',
-        date: new Date(appointment.date).toLocaleDateString('en-US', {
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: true,
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      }));
+     
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -188,12 +178,13 @@ const Appointments = () => {
                 <td className="border border-gray-200 px-4 py-2">{appointment.id}</td>
                 <td className="border border-gray-200 px-4 py-2">{appointment.patient ? appointment.patient.name : 'Unknown'}</td>
                 <td className="border border-gray-200 px-4 py-2">{appointment.doctor ? appointment.doctor.name : 'Unknown'}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.date}</td>
+                <td className="border border-gray-200 px-4 py-2">{format(new Date(appointment.date), 'MMMM dd, yyyy, h:mm a')}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
     </div>
   );
 };

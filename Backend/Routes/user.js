@@ -43,6 +43,19 @@ UserRouter.get('/userInfo', authenticateToken, async (req, res) => {
     }
 });
 
+UserRouter.get('/' , authenticateToken , async (req,res)=>{
+    try{
+        const user = await prisma.user.findMany()
+        res.json(user)
+
+        
+    }catch(err){
+        console.log(err)
+    }
+ 
+
+})
+
 UserRouter.post('/logout', authenticateToken, (req, res) => {
     const token = req.headers['authorization'].split(' ')[1];
     blacklist.add(token);

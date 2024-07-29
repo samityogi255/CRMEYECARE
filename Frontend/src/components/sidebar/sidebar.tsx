@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { AiFillHome, AiOutlineUser, AiOutlineCalendar, AiOutlineBarChart, AiOutlineSetting } from 'react-icons/ai';
+import { FaShoppingBag } from "react-icons/fa";
+import { MdMedicalServices } from "react-icons/md";
 import { FaUserDoctor } from "react-icons/fa6";
 import { MdOutlinePayment } from "react-icons/md";
 
@@ -30,6 +32,12 @@ const Sidebar = () => {
             </NavLink>
             <NavLink to="/doctor" icon={<FaUserDoctor/>}>
               Doctor
+            </NavLink>
+            <NavLink to="/service" icon={<MdMedicalServices/>}>
+              Service
+            </NavLink>
+            <NavLink to="/sales" icon={<FaShoppingBag/>}>
+              Sales
             </NavLink>
           </nav>
         </div>

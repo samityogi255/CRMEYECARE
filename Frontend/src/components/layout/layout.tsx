@@ -1,4 +1,3 @@
-// Layout.tsx
 import { ReactNode, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Navbar from '../Nav/nav';
@@ -6,7 +5,7 @@ import Sidebar from '../sidebar/sidebar';
 import axios from 'axios';
 
 interface LayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 const Layout = ({ children }: LayoutProps) => {
@@ -22,7 +21,6 @@ const Layout = ({ children }: LayoutProps) => {
         if (!token) {
           navigate('/login');
           throw new Error('No access token found');
-          
         }
         const response = await axios.get<{ username: string }>('http://localhost:3002/user/userInfo', {
           headers: {
@@ -45,16 +43,16 @@ const Layout = ({ children }: LayoutProps) => {
   }, [navigate]); // Include navigate in the dependency array
 
   return (
-    <>
+    <div className="flex flex-col h-screen">
       <Navbar name={user} />
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="w-full">
+        <main className="flex-1 overflow-auto p-4">
           <Outlet />
           {children}
         </main>
       </div>
-    </>
+    </div>
   );
 };
 

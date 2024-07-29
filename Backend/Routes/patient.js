@@ -1,13 +1,13 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const {authenticateToken} = require('../middleware/authMiddleware')
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // Create a new patient
 router.post('/', authenticateToken, async (req, res) => {
-  const { name, age, gender } = req.body;
+  const { name, age, gender, email, phone, address } = req.body;
 
   try {
     const newPatient = await prisma.patient.create({
@@ -15,6 +15,9 @@ router.post('/', authenticateToken, async (req, res) => {
         name,
         age,
         gender,
+        email,
+        phone :phone.toString(),
+        address,
       },
     });
     res.status(201).json(newPatient);
@@ -25,7 +28,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Get all patients
-router.get('/', authenticateToken,  async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const patients = await prisma.patient.findMany();
     res.json(patients);
@@ -36,7 +39,7 @@ router.get('/', authenticateToken,  async (req, res) => {
 });
 
 // Get a patient by ID
-router.get('/:id',  authenticateToken,  async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -58,9 +61,9 @@ router.get('/:id',  authenticateToken,  async (req, res) => {
 });
 
 // Update a patient by ID
-router.put('/:id',  authenticateToken, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
-  const { name, age, gender } = req.body;
+  const { name, age, gender, email, phone, address } = req.body;
 
   try {
     const updatedPatient = await prisma.patient.update({
@@ -71,6 +74,9 @@ router.put('/:id',  authenticateToken, async (req, res) => {
         name,
         age,
         gender,
+        email,
+        phone :phone.toString(),
+        address,
       },
     });
 
@@ -82,7 +88,7 @@ router.put('/:id',  authenticateToken, async (req, res) => {
 });
 
 // Delete a patient by ID
-router.delete('/:id',  authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
 
   try {

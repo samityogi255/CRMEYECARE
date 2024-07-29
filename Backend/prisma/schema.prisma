@@ -19,6 +19,12 @@ model User {
   username String    @unique
   password String
   profiles Profile[]
+  Sales Sales[]
+  position String?
+  department String?
+  phone String?
+  address String?
+  hireDate String?
 }
 
 model Profile {
@@ -33,7 +39,7 @@ model Profile {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   userId               Int
-  user                 User     @relation(fields: [userId], references: [id])
+  user                 User     @relation(fields: [userId], references: [id] , onDelete: Cascade)
 }
 
 model Patient {
@@ -41,6 +47,10 @@ model Patient {
   name   String
   age    Int
   gender String
+  email String  ?
+  phone String ?
+  address String ?
+  Sales Sales[]
 
   Appointment Appointment[]
 }
@@ -55,9 +65,9 @@ model Doctor {
 model Appointment {
   id        Int       @id @default(autoincrement())
   date      DateTime?
-  doctor    Doctor    @relation(fields: [doctorId], references: [id])
+  doctor    Doctor    @relation(fields: [doctorId], references: [id] ,  onDelete: Cascade)
   doctorId  Int
-  patient   Patient?  @relation(fields: [patientId], references: [id])
+  patient   Patient?  @relation(fields: [patientId], references: [id] ,  onDelete: Cascade)
   patientId Int?
   createdAt DateTime  @default(now())
   updatedAt DateTime ?  @updatedAt
@@ -69,8 +79,28 @@ model Payment {
   amount        Float
   currency      String
   status        String?
-  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  appointment   Appointment @relation(fields: [appointmentId], references: [id] ,  onDelete: Cascade)
   appointmentId Int
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+model Services {
+  id Int @id @default(autoincrement())
+  name String
+  description String
+  price Int
+  duration String
+}
+
+model Sales {
+  id Int @id @default(autoincrement())
+  employeeId Int
+  customerId Int
+  serviceId Int  @default(autoincrement())
+  date DateTime
+  serviceDuration Int
+  totalAmount Int
+  user User @relation(fields: [employeeId] , references: [id] , onDelete: Cascade)
+  customer Patient @relation(fields: [customerId] , references: [id] , onDelete: Cascade)
 }

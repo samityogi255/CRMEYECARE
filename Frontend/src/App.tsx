@@ -10,6 +10,8 @@ import Payment from "./components/Payment/payment";
 import Profile from "./components/profile/profile";
 import Doctors from "./components/doctor/doctor";
 import PaymentForms from "./components/Payment/paymentForm";
+import ServicesManager from "./components/service/service";
+import SalesManager from "./components/sales/sales";
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/doctor" element={<Doctors />} />
           <Route path="/add-payment" element={<PaymentForms/>} />
+          <Route path="/service" element={<ServicesManager/>} />
+          <Route path="/sales" element={<SalesManager/>} />
         </Route>
       </Routes>
     </BrowserRouter>

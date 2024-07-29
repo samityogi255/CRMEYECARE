@@ -6,6 +6,9 @@ export default function Login() {
     const navigate = useNavigate();
     const inputStyle = "border rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500";
 
+    const [showPassword, setShowPassword] = useState(false);
+   
+
     const [user, setUser] = useState({
         email: "",
         password: ""
@@ -34,6 +37,9 @@ export default function Login() {
                 console.error('Error logging in:', err);
                 alert('Login failed. Please check your credentials and try again.');
             });
+    };
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
     };
 
     return (
@@ -67,7 +73,7 @@ export default function Login() {
                             </label>
                             <input
                                 id="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 name="password"
                                 value={user.password}
                                 onChange={handleChange}
@@ -75,6 +81,16 @@ export default function Login() {
                                 placeholder="Enter your password"
                                 required
                             />
+                            <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={showPassword}
+                                        onChange={togglePasswordVisibility}
+                                    />
+                                    Show Password
+                                </label>
+                               
+                           
                         </div>
                     </div>
                     <button className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">

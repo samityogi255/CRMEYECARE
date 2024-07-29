@@ -2,19 +2,27 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 
 interface Patient {
-  id: number;
+  id: number | null;
   name: string;
   age: number;
   gender: string;
+  email?: string;
+  phone?: string;
+  address?: string;
 }
 
 const Patients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Patient>>({
+    id: null,
     name: '',
     age: 0,
     gender: '',
+    email: '',
+    phone: '',
+    address: '',
   });
+  const [isEditing, setIsEditing] = useState(false);
 
   // Function to fetch patients data
   const fetchPatients = async () => {
@@ -41,24 +49,40 @@ const Patients = () => {
     const { name, value } = e.target;
     setFormData((prevFormData) => ({
       ...prevFormData,
-      [name]: name === 'age' ? parseInt(value) : value,
+      [name]: name === 'age' ? parseInt(value, 10) : name === 'phone' ? value : value,
     }));
   };
 
-  // Function to handle form submission for adding a new patient
+  // Function to handle form submission for adding or updating a patient
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const token = localStorage.getItem('accessToken');
+
     try {
-      const token = localStorage.getItem('accessToken');
-      const response = await axios.post<Patient>('http://localhost:3002/patients', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setPatients([...patients, response.data]);
-      setFormData({ name: '', age: '0', gender: '' });
+      if (isEditing && formData.id !== null) {
+        // Edit existing patient
+        await axios.put<Patient>(`http://localhost:3002/patients/${formData.id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setPatients((prevPatients) =>
+          prevPatients.map((patient) => (patient.id === formData.id ? { ...patient, ...formData } : patient))
+        );
+      } else {
+        // Add new patient
+        const response = await axios.post<Patient>('http://localhost:3002/patients', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setPatients([...patients, response.data]);
+      }
+      // Reset form and exit edit mode
+      setFormData({ id: null, name: '', age: 0, gender: '', email: '', phone: '', address: '' });
+      setIsEditing(false);
     } catch (error) {
-      console.error('Error adding patient:', error);
+      console.error('Error submitting form:', error);
     }
   };
 
@@ -71,18 +95,23 @@ const Patients = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      const updatedPatients = patients.filter((patient) => patient.id !== id);
-      setPatients(updatedPatients);
+      setPatients((prevPatients) => prevPatients.filter((patient) => patient.id !== id));
     } catch (error) {
       console.error('Error deleting patient:', error);
     }
+  };
+
+  // Function to handle editing a patient
+  const handleEdit = (patient: Patient) => {
+    setFormData(patient);
+    setIsEditing(true);
   };
 
   return (
     <div className="p-6">
       <h1 className="text-3xl font-semibold mb-6">Patients</h1>
 
-      {/* Add Patient Form */}
+      {/* Add/Edit Patient Form */}
       <form className="mb-6" onSubmit={handleSubmit}>
         <label className="block mb-2 font-semibold">Name:</label>
         <input
@@ -117,8 +146,35 @@ const Patients = () => {
           <option value="Female">Female</option>
         </select>
 
+        <label className="block mb-2 font-semibold">Email:</label>
+        <input
+          type="email"
+          name="email"
+          className="p-2 mb-2 rounded-lg w-full"
+          value={formData.email}
+          onChange={handleChange}
+        />
+
+        <label className="block mb-2 font-semibold">Phone:</label>
+        <input
+          type="text"
+          name="phone"
+          className="p-2 mb-2 rounded-lg w-full"
+          value={formData.phone}
+          onChange={handleChange}
+        />
+
+        <label className="block mb-2 font-semibold">Address:</label>
+        <input
+          type="text"
+          name="address"
+          className="p-2 mb-2 rounded-lg w-full"
+          value={formData.address}
+          onChange={handleChange}
+        />
+
         <button type="submit" className="bg-blue-500 text-white p-2 rounded-lg w-full">
-          Add Patient
+          {isEditing ? 'Update Patient' : 'Add Patient'}
         </button>
       </form>
 
@@ -131,6 +187,9 @@ const Patients = () => {
               <th className="border border-gray-200 px-4 py-2 text-left">Name</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Age</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Gender</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Email</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Phone</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Address</th>
               <th className="border border-gray-200 px-4 py-2"></th>
             </tr>
           </thead>
@@ -141,7 +200,16 @@ const Patients = () => {
                 <td className="border border-gray-200 px-4 py-2">{patient.name}</td>
                 <td className="border border-gray-200 px-4 py-2">{patient.age}</td>
                 <td className="border border-gray-200 px-4 py-2">{patient.gender}</td>
+                <td className="border border-gray-200 px-4 py-2">{patient.email || 'N/A'}</td>
+                <td className="border border-gray-200 px-4 py-2">{patient.phone || 'N/A'}</td>
+                <td className="border border-gray-200 px-4 py-2">{patient.address || 'N/A'}</td>
                 <td className="border border-gray-200 px-4 py-2 text-center">
+                  <button
+                    onClick={() => handleEdit(patient)}
+                    className="bg-yellow-500 text-white p-2 rounded-lg mr-2"
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(patient.id)}
                     className="bg-red-500 text-white p-2 rounded-lg"

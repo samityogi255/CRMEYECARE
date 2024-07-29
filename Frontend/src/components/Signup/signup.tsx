@@ -5,12 +5,15 @@ import axios from "axios";
 export default function Signup() {
     const navigate = useNavigate();
     const inputStyle = "border rounded-md p-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500";
+    const [showPassword, setShowPassword] = useState(false);
 
     const [userInfo, setUserInfo] = useState({
         name: "",
         email: "",
         password: ""
     });
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -20,8 +23,21 @@ export default function Signup() {
         }));
     };
 
+    const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setConfirmPassword(e.target.value);
+        if (userInfo.password !== e.target.value) {
+            setPasswordError("Passwords do not match.");
+        } else {
+            setPasswordError("");
+        }
+    };
+
     const submit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (userInfo.password !== confirmPassword) {
+            setPasswordError("Passwords do not match.");
+            return;
+        }
 
         axios.post('http://localhost:3002/user/createUser', userInfo)
             .then(result => {
@@ -32,6 +48,10 @@ export default function Signup() {
                 console.error('Error signing up:', err);
                 alert('Signup failed. Please check your information and try again.');
             });
+    };
+
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
     };
 
     return (
@@ -76,18 +96,49 @@ export default function Signup() {
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                                 Password
                             </label>
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                value={userInfo.password}
-                                onChange={handleChange}
-                                className={inputStyle}
-                                required
-                            />
+                            <div>
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={userInfo.password}
+                                    onChange={handleChange}
+                                    className={inputStyle}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                                Confirm Password
+                            </label>
+                            <div>
+                                <input
+                                    id="confirmPassword"
+                                    type={showPassword ? "text" : "password"}
+                                    name="confirmPassword"
+                                    value={confirmPassword}
+                                    onChange={handleConfirmPasswordChange}
+                                    className={inputStyle}
+                                    required
+                                />
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={showPassword}
+                                        onChange={togglePasswordVisibility}
+                                    />
+                                    Show Password
+                                </label>
+                                {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+                            </div>
                         </div>
                     </div>
-                    <button className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button
+                        className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        type="submit"
+                        disabled={userInfo.password !== confirmPassword}
+                    >
                         Sign Up
                     </button>
                     <div className="text-center mt-4">

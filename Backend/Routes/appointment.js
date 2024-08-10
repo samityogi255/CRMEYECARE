@@ -12,8 +12,8 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointment.findMany({
       include: {
-        patient: true, // Include patient information
-        doctor: true   // Include doctor information
+        patient: true,
+        doctor: true,
       },
     });
     res.json(appointments);
@@ -29,8 +29,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
     const appointment = await prisma.appointment.findUnique({
       where: { id: parseInt(id) },
       include: {
-        patient: true, // Include patient information
-        doctor: true   // Include doctor information
+        patient: true,
+        doctor: true,
       },
     });
     if (!appointment) {
@@ -46,11 +46,17 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   const { date, doctorId, patientId } = req.body;
   try {
+    const newDate = new Date(date);
+    const today = new Date();
+    if (newDate < today) {
+      return res.status(400).json({ error: 'You cannot choose a date in the past' });
+    }
+
     const newAppointment = await prisma.appointment.create({
       data: {
-        date: new Date(date),
+        date: newDate,
         doctorId: parseInt(doctorId),
-        patientId: parseInt(patientId)
+        patientId: parseInt(patientId),
       },
     });
     res.status(201).json(newAppointment);
@@ -77,6 +83,32 @@ router.put('/:id', authenticateToken, async (req, res) => {
     res.status(400).json({ error: 'Error updating appointment' });
   }
 });
+
+// PATCH reschedule appointment by ID
+router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { date } = req.body;
+
+  try {
+    const newDate = new Date(date);
+    const today = new Date();
+    if (newDate < today) {
+      return res.status(400).json({ error: 'You cannot choose a date in the past' });
+    }
+
+    const updatedAppointment = await prisma.appointment.update({
+      where: { id: parseInt(id) },
+      data: {
+        date: newDate,
+      },
+    });
+
+    res.json(updatedAppointment);
+  } catch (error) {
+    res.status(400).json({ error: 'Error rescheduling appointment' });
+  }
+});
+
 
 // DELETE appointment by ID
 router.delete('/:id', authenticateToken, async (req, res) => {

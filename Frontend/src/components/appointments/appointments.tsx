@@ -1,12 +1,12 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 
 interface Appointment {
   id: number;
-  date: string;       // Assuming 'date' field in the schema is a string with datetime
-  patient: Patient;   // Updated to include patient details
-  doctor: Doctor;     // Updated to include doctor details
+  date: string;
+  patient: Patient;
+  doctor: Doctor;
 }
 
 interface Doctor {
@@ -26,19 +26,20 @@ const Appointments = () => {
   const [formData, setFormData] = useState({
     patientId: '',
     doctorId: '',
-    date: ''
+    date: '',
   });
+  const [rescheduleData, setRescheduleData] = useState<{ id: number; date: string } | null>(null);
 
   const fetchPatientsAndDoctors = async () => {
     try {
       const token = localStorage.getItem('accessToken');
       const [patientsResponse, doctorsResponse] = await Promise.all([
         axios.get('http://localhost:3002/patients', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }),
         axios.get('http://localhost:3002/doctors', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
       setPatients(patientsResponse.data);
       setDoctors(doctorsResponse.data);
@@ -51,16 +52,13 @@ const Appointments = () => {
     try {
       const token = localStorage.getItem('accessToken');
       const appointmentResponse = await axios.get('http://localhost:3002/appointments', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setAppointments(appointmentResponse.data)
-
-     
-
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
+      setAppointments(appointmentResponse.data);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,11 +67,11 @@ const Appointments = () => {
     };
 
     fetchData();
-  }, [patients, doctors]);
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prevFormData => ({
+    setFormData((prevFormData) => ({
       ...prevFormData,
       [name]: value,
     }));
@@ -85,29 +83,57 @@ const Appointments = () => {
       const token = localStorage.getItem('accessToken');
       const formattedData = {
         ...formData,
-        // Ensure proper date format for backend (considering time zone)
         date: new Date(formData.date).toISOString(),
       };
-      const response = await axios.post<Appointment>('http://localhost:3002/appointments', formattedData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.post<Appointment>(
+        'http://localhost:3002/appointments',
+        formattedData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      const newAppointment: Appointment = {
-        ...response.data,
-        patientName: patients.find(patient => patient.id === response.data.patientId)?.name || 'Unknown',
-        doctorName: doctors.find(doctor => doctor.id === response.data.doctorId)?.name || 'Unknown',
-        date: new Date(response.data.date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
-      };
-
-      setAppointments([...appointments, newAppointment]);
+      setAppointments([...appointments, response.data]);
       setFormData({ patientId: '', doctorId: '', date: '' });
     } catch (error) {
       console.error('Error adding appointment:', error);
     }
+  };
+
+  const handleReschedule = async () => {
+    if (rescheduleData) {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await axios.patch(
+          `http://localhost:3002/appointments/${rescheduleData.id}/reschedule`,
+          { date: rescheduleData.date },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const updatedAppointments = appointments.map((appointment) =>
+          appointment.id === rescheduleData.id ? { ...appointment, date: response.data.date } : appointment
+        );
+        setAppointments(updatedAppointments);
+        setRescheduleData(null);
+      } catch (error) {
+        console.error('Error rescheduling appointment:', error);
+      }
+    }
+  };
+
+  const handleRescheduleClick = (appointment: Appointment) => {
+    setRescheduleData({ id: appointment.id, date: appointment.date });
+  };
+
+  const handleRescheduleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setRescheduleData((prev) => (prev ? { ...prev, date: e.target.value } : null));
+  };
+
+  const isDateInPast = (date: string) => {
+    const today = new Date();
+    return new Date(date) < today;
   };
 
   return (
@@ -124,7 +150,7 @@ const Appointments = () => {
           required
         >
           <option value="">Select Patient</option>
-          {patients.map(patient => (
+          {patients.map((patient) => (
             <option key={patient.id} value={patient.id}>
               {patient.name}
             </option>
@@ -140,7 +166,7 @@ const Appointments = () => {
           required
         >
           <option value="">Select Doctor</option>
-          {doctors.map(doctor => (
+          {doctors.map((doctor) => (
             <option key={doctor.id} value={doctor.id}>
               {doctor.name}
             </option>
@@ -157,10 +183,46 @@ const Appointments = () => {
           required
         />
 
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded-lg w-full">
+        {isDateInPast(formData.date) && (
+          <div className="text-red-500 mb-2">Cannot select a past date.</div>
+        )}
+
+        <button
+          type="submit"
+          className="bg-blue-500 text-white p-2 rounded-lg w-full"
+          disabled={isDateInPast(formData.date)}
+        >
           Add Appointment
         </button>
       </form>
+
+      {rescheduleData && (
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold mb-4">Reschedule Appointment</h2>
+          <form onSubmit={(e) => { e.preventDefault(); handleReschedule(); }}>
+            <label className="block mb-2 font-semibold">New Date and Time:</label>
+            <input
+              type="datetime-local"
+              className="p-2 mb-2 rounded-lg w-full"
+              value={rescheduleData.date}
+              onChange={handleRescheduleChange}
+              required
+            />
+
+            {isDateInPast(rescheduleData.date) && (
+              <div className="text-red-500 mb-2">Cannot select a past date.</div>
+            )}
+
+            <button
+              type="submit"
+              className="bg-yellow-500 text-white p-2 rounded-lg w-full"
+              disabled={isDateInPast(rescheduleData.date)}
+            >
+              Reschedule
+            </button>
+          </form>
+        </div>
+      )}
 
       <div>
         <table className="w-full border-collapse border border-gray-200">
@@ -170,21 +232,31 @@ const Appointments = () => {
               <th className="border border-gray-200 px-4 py-2 text-left">Patient Name</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Doctor Name</th>
               <th className="border border-gray-200 px-4 py-2 text-left">Date and Time</th>
+              <th className="border border-gray-200 px-4 py-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {appointments.map(appointment => (
+            {appointments.map((appointment) => (
               <tr key={appointment.id}>
                 <td className="border border-gray-200 px-4 py-2">{appointment.id}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.patient ? appointment.patient.name : 'Unknown'}</td>
-                <td className="border border-gray-200 px-4 py-2">{appointment.doctor ? appointment.doctor.name : 'Unknown'}</td>
-                <td className="border border-gray-200 px-4 py-2">{format(new Date(appointment.date), 'MMMM dd, yyyy, h:mm a')}</td>
+                <td className="border border-gray-200 px-4 py-2">{appointment.patient?.name}</td>
+                <td className="border border-gray-200 px-4 py-2">{appointment.doctor?.name}</td>
+                <td className="border border-gray-200 px-4 py-2">
+                  {format(new Date(appointment.date), 'MMMM dd, yyyy, h:mm a')}
+                </td>
+                <td className="border border-gray-200 px-4 py-2">
+                  <button
+                    className="bg-yellow-500 text-white p-2 rounded-lg mr-2"
+                    onClick={() => handleRescheduleClick(appointment)}
+                  >
+                    Reschedule
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
     </div>
   );
 };

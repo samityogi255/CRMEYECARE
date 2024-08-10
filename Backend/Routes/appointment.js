@@ -58,6 +58,10 @@ router.post('/', authenticateToken, async (req, res) => {
         doctorId: parseInt(doctorId),
         patientId: parseInt(patientId),
       },
+      include: {
+        patient: true,
+        doctor: true,
+      },
     });
     res.status(201).json(newAppointment);
   } catch (error) {
@@ -76,6 +80,10 @@ router.put('/:id', authenticateToken, async (req, res) => {
         date: new Date(date),
         doctorId: parseInt(doctorId),
         patientId: parseInt(patientId),
+      },
+      include: {
+        patient: true,
+        doctor: true,
       },
     });
     res.json(updatedAppointment);
@@ -101,6 +109,10 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
       data: {
         date: newDate,
       },
+      include: {
+        patient: true,
+        doctor: true,
+      },
     });
 
     res.json(updatedAppointment);
@@ -108,7 +120,6 @@ router.patch('/:id/reschedule', authenticateToken, async (req, res) => {
     res.status(400).json({ error: 'Error rescheduling appointment' });
   }
 });
-
 
 // DELETE appointment by ID
 router.delete('/:id', authenticateToken, async (req, res) => {
